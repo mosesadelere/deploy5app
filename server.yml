@@ -1,0 +1,115 @@
+---
+
+- name: Provision Single server for multiple apps with Traefik reverse proxy and Let's Encrypt SSL certificates
+  host: localhost
+  become: true
+  vars:
+    user: madelere
+    app_dir: /opt/apps
+    allowed_apps:
+      - app1
+      - app2
+      - app3
+      - app4
+      - app5
+
+  tasks:
+    - name: update and upgrade apt packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+        cache_valid_time: 86400
+    
+    - name: Install required packages
+      apt:
+        name:
+          - git
+          - curl
+          - ufw
+          - software-properties-common
+          - ca-certificates
+          - apt-transport-https
+        state: present
+
+    - name: Add Docker GPG key
+      apt_key:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        state: present
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: deb [arch=amd64] https://download.docker.com/linux/ubuntu ${{ ansible_lsb_release.codename }} stable
+        state: present
+
+    - name: Install Docker and Docker Compose
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-compose-plugin
+        state: present
+
+    - name: Ensure Docker service is running and enabled
+      systemd:
+        name: docker
+        state: started
+        enabled: true
+      
+    - name: Add user to Docker group
+      user:
+        name: "{{ user }}"
+        groups:
+          - docker
+        append: yes
+
+    - name: Set up authorized keys for SSH access
+      authorized_key:
+        user: "{{ user }}"
+        state: present
+        key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+
+    - name: Allow UFW firewall for SSH, HTTP, and HTTPS
+      ufw:
+        rule: allow
+        name: "{{ item }}"
+      loop:
+        - {port: 22, proto: tcp}
+        - {port: 80, proto: tcp}
+        - {port: 443, proto: tcp}
+
+    - name: Restrict ssh access to specific user
+      ufw:
+        rule: allow
+        port: 22
+        proto: tcp
+        from: "{{ item}}"
+        loop: "{{ allowed_ssh_ips | default(['']) }}"
+
+    - name: Enable UFW firewall
+      ufw:
+        state: enabled 
+        policy: deny
+        direction: incoming
+
+    - name: Create application directory
+      file:
+        path: "{{ app_dir }}"
+        state: directory
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0755'
+
+    - name: Create Traefik configuration directory
+      file:
+        path: "{{ app_dir }}/traefik-letsencrypt"
+        state: directory
+        owner: "{{ user }}"
+        group: "{{ user }}"
+        mode: '0600'
+
+    - name: Create external network for Traefik
+      docker_network:
+        name: web
+        state: present
+        driver: bridge

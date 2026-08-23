@@ -1,0 +1,122 @@
+
+services:
+  app1:
+    image: node:18
+    working_dir: /usr/src/app
+    command: sh -c "npm install && npm start"
+    restart: unless-stopped
+    volumes:
+      - ./app1:/usr/src/app
+    expose:
+      - "3000"
+    environment:
+      - PORT=3000
+      - APP_ENV=production
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app1.rule=Host(`app1.localtest.com`)"
+      - "traefik.http.routers.app1.entrypoints=web"
+      - "traefik.http.services.app1.loadbalancer.server.port=3000"
+  
+  app2:
+    image: node:18
+    working_dir: /usr/src/app
+    command: sh -c "npm install && npm start"
+    restart: unless-stopped
+    volumes:
+      - ./app2:/usr/src/app
+    expose:
+      - "4000"
+    environment:
+      - PORT=4000
+      - APP_ENV=production
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app2.rule=Host(`app2.localtest.com`)"
+      - "traefik.http.routers.app2.entrypoints=web"
+      - "traefik.http.services.app2.loadbalancer.server.port=4000"
+
+  app3:
+    image: node:18
+    working_dir: /usr/src/app
+    command: sh -c "npm install && npm start"
+    restart: unless-stopped
+    volumes:
+      - ./app3:/usr/src/app
+    expose:
+      - "5000"
+    environment:
+      - PORT=5000
+      - APP_ENV=production
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app3.rule=Host(`app3.localtest.com`)"
+      - "traefik.http.routers.app3.entrypoints=web"
+      - "traefik.http.services.app3.loadbalancer.server.port=5000"
+
+  app4:
+    image: hashicorp/http-echo:latest
+    command: ["-text='Hello from App 4!'"]
+    restart: unless-stopped
+    expose:
+      - "5678"
+    environment:
+      - PORT=5678
+      - APP_ENV=production
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app4.rule=Host(`app4.localtest.com`)"
+      - "traefik.http.routers.app4.entrypoints=web"
+      - "traefik.http.services.app4.loadbalancer.server.port=5678"
+
+  app5:
+    image: hashicorp/http-echo:latest
+    command: ["-text='Hello from App 5!'"]
+    restart: unless-stopped
+    expose:
+      - "5678"
+    environment:
+      - PORT=5678
+      - APP_ENV=production
+    networks:
+      - web
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.app5.rule=Host(`app5.localtest.com`)"
+      - "traefik.http.routers.app5.entrypoints=web"
+      - "traefik.http.services.app5.loadbalancer.server.port=5678"
+
+  traefik:
+    image: traefik:v3.7
+    container_name: traefik
+    restart: unless-stopped
+    user: "root"
+    command:
+      - "--api.insecure=true"
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--providers.docker.network=web"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+    ports:
+      - "8080:8080"
+      - "80:80"
+      - "443:443"
+    networks:
+      - web
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./letsencrypt:/letsencrypt
+  
+networks:
+  web:
+    driver: bridge
