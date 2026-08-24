@@ -1,71 +1,71 @@
-name: Build and Deploy
+# name: Build and Deploy
 
-on:
-  push:
-    branches:
-      - main 
-    paths:
-      - 'docker-compose.yml'
-      - '.github/workflows/app1.yml'
+# on:
+#   push:
+#     branches:
+#       - main 
+#     paths:
+#       - 'docker-compose.yml'
+#       - '.github/workflows/app1.yml'
 
-env:
-  APP_ENV: app5
-  REGISTRY: ghcr.io
-  IMAGE_NAME: app5
-  URL: http://app5.localhost
-  APP_NAME: app5
+# env:
+#   APP_ENV: app5
+#   REGISTRY: ghcr.io
+#   IMAGE_NAME: app5
+#   URL: http://app5.localhost
+#   APP_NAME: app5
 
-jobs:
-  build-and-push:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      packages: write
+# jobs:
+#   build-and-push:
+#     runs-on: ubuntu-latest
+#     permissions:
+#       contents: read
+#       packages: write
 
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v5
+#     steps:
+#       - name: Checkout code
+#         uses: actions/checkout@v5
 
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ${{ env.REGISTRY }}
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+#       - name: Log in to GitHub Container Registry
+#         uses: docker/login-action@v4
+#         with:
+#           registry: ${{ env.REGISTRY }}
+#           username: ${{ github.actor }}
+#           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Extract metadata (tags, labels) for Docker
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
-          tags: |
-            type=ref,event=branch,pattern={{ ref_name }}-{{ env.APP_ENV }}
-            type=sha,format=long
-            type=raw,value=latest
-          labels: |
-            org.opencontainers.image.source=${{ github.repository }}
+#       - name: Extract metadata (tags, labels) for Docker
+#         id: meta
+#         uses: docker/metadata-action@v5
+#         with:
+#           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+#           tags: |
+#             type=ref,event=branch,pattern={{ ref_name }}-{{ env.APP_ENV }}
+#             type=sha,format=long
+#             type=raw,value=latest
+#           labels: |
+#             org.opencontainers.image.source=${{ github.repository }}
 
-      - name: Build and push Docker image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+#       - name: Build and push Docker image
+#         uses: docker/build-push-action@v4
+#         with:
+#           context: .
+#           file: ./Dockerfile
+#           push: true
+#           tags: ${{ steps.meta.outputs.tags }}
 
-  deploy:
-    runs-on: ubuntu-latest
-    needs: build-and-push
-    steps:
+#   deploy:
+#     runs-on: ubuntu-latest
+#     needs: build-and-push
+#     steps:
   
-      - name: Execute deployment script on server
-        uses: appleboy/ssh-action@v0.1.5
-        with:
-          host: ${{ secrets.SERVER_HOST }}
-          username: ${{ secrets.SERVER_USER }}
-          key: ${{ secrets.SERVER_SSH_KEY }}
-          script: |
-            cd /opt/app5
-            docker-compose pull ${{ env.APP_NAME }}
-            docker-compose up -d --no-deps ${{ env.APP_NAME }}
-            docker image prune -f
+#       - name: Execute deployment script on server
+#         uses: appleboy/ssh-action@v0.1.5
+#         with:
+#           host: ${{ secrets.SERVER_HOST }}
+#           username: ${{ secrets.SERVER_USER }}
+#           key: ${{ secrets.SERVER_SSH_KEY }}
+#           script: |
+#             cd /opt/app5
+#             docker-compose pull ${{ env.APP_NAME }}
+#             docker-compose up -d --no-deps ${{ env.APP_NAME }}
+#             docker image prune -f
