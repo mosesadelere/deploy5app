@@ -37,11 +37,10 @@ jobs:
         id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ github.repository_owner }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=ref,event=branch,pattern={{ ref_name }}-{{ env.APP_ENV }}
-            type=sha,format=long
-            type=raw,value=latest
+            type=sha,prefix=sha-,format=short
+            type=raw,value=latest,enable=${ github.ref == 'refs/heads/main' }
           labels: |
             org.opencontainers.image.source=${{ github.repository }}
 
